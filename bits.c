@@ -50,20 +50,23 @@ int bitXor(int x, int y) {
  *   1 if x and y have the same sign , 0 otherwise.
  */
 int samesign(int x, int y) {
-    if (!(x & 0xFFFFFFFF)) {
-        if (!(y & 0xFFFFFFFF))
+    // 对0的情况进行判断
+    int x_is_zero=!(x & 0xFFFFFFFF);
+    int y_is_zero=!(y & 0xFFFFFFFF);
+    if (x_is_zero) {
+        if (y_is_zero)
             return 1;
 
         return 0;
     }
-    if (!(y & 0xFFFFFFFF)) {
-        if (!(x & 0xFFFFFFFF))
+    if (y_is_zero) {
+        if (x_is_zero)
             return 1;
 
         return 0;
     }
-    if (!((x >> 31) ^ (y >> 31)))
-        return 1;
+
+    return !((x >> 31) ^ (y >> 31));
     return 0;
 }
 
@@ -124,6 +127,8 @@ int byteSwap(int x, int n, int m) {
     int mask4 = byte1 << move_m;
     int mask5 = byte2 << move_n;
     return x1 | mask4 | mask5;
+
+    // 更清晰的思路，可以并行操作（但其实就是上面的简化版mask12 mask45合并）
 }
 
 /*
@@ -178,7 +183,7 @@ unsigned reverse(unsigned v) {
  */
 int logicalShift(int x, int n) {
     // 和算术右移区别
-    // unsigned ux = x;这样是不符合要求吗
+    // unsigned ux = x;这样不符合要求
     x = x >> n;
     // 我需要知道x的位数？
     // 思考，最多有n位可能是错误的，然后总共32位是已知的
@@ -288,7 +293,7 @@ unsigned float_i2f(int x) {
     // }
     // return (sign << 31) + ((p + 127) << 23) + frac;
 
-    // 压缩版
+    // 第二版
     if (x == 0)  // 1
         return 0;
     // 确认sign
@@ -315,7 +320,7 @@ unsigned float_i2f(int x) {
         //     temp = temp - 1;
         // }
         // frac = (ux & mask1) << (23 - p);
-        frac = ((ux << (31 - p)) >> 8) & 0x7FFFFF;  // 优化1，9,10,11,12
+        frac = (ux << (23 - p)) & 0x7FFFFF;  // 优化1，9,10,11,12
 
     } else {
         int move = p - 23;                         // 13
@@ -329,7 +334,7 @@ unsigned float_i2f(int x) {
                 if (frac & 1) {         // 23
                     frac = frac + 1;    // 24
                     // 不需要，直接进位
-                    // if (frac & 0x800000) {
+                    // if (frac == 0x800000) {
                     //     frac = 0;
                     //     p = p + 1;
                     // }
@@ -338,7 +343,7 @@ unsigned float_i2f(int x) {
             // 后面有1，直接进位
             else {
                 frac = frac + 1;  // 26
-                // if (frac & 0x800000) {
+                // if (frac == 0x800000) {
                 //     frac = 0;
                 //     p = p + 1;
                 // }
